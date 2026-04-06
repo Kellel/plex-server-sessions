@@ -203,12 +203,7 @@ export class PlexSessionsCard extends LitElement {
     }
 
     .empty-art .sleep-icon.one {
-      right: 30px;
-      top: 2px;
-    }
-
-    .empty-art .sleep-icon.two {
-      right: 12px;
+      right: 18px;
       top: 16px;
     }
 
@@ -302,7 +297,7 @@ export class PlexSessionsCard extends LitElement {
 
     return {
       title: "Nobody is watching",
-      body: "Plex clients were found, but none are currently playing or paused.",
+      body: "",
     };
   }
 
@@ -316,12 +311,13 @@ export class PlexSessionsCard extends LitElement {
               <div class="empty-art" aria-hidden="true">
                 <ha-icon class="sheep-icon" icon="mdi:sheep"></ha-icon>
                 <ha-icon class="sleep-icon one" icon="mdi:sleep"></ha-icon>
-                <ha-icon class="sleep-icon two" icon="mdi:sleep"></ha-icon>
               </div>
             `
           : nothing}
         <div class="empty-title">${emptyState.title}</div>
-        <div class="empty-body">${emptyState.body}</div>
+        ${emptyState.body
+          ? html`<div class="empty-body">${emptyState.body}</div>`
+          : nothing}
       </div>
     `;
   }
