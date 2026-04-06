@@ -3,8 +3,9 @@ import { customElement, property, state } from "lit/decorators.js";
 import {
   getConfiguredEntities,
   getDisplayName,
+  getEntityPicture,
+  getStateIcon,
   getSecondaryText,
-  getStateGlyph,
   isEntityActive,
 } from "./helpers";
 import type {
@@ -45,8 +46,49 @@ export class PlexSessionsCard extends LitElement {
       border-radius: 12px;
       padding: 10px 12px;
       display: grid;
-      gap: 4px;
+      gap: 8px;
       background: var(--card-background-color, #fff);
+    }
+
+    .top {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+
+    .artwork {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: linear-gradient(135deg, #2f3640 0%, #66707a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .artwork.detailed {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+    }
+
+    .artwork img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .content {
+      min-width: 0;
+      display: grid;
+      gap: 4px;
     }
 
     .row {
@@ -54,18 +96,28 @@ export class PlexSessionsCard extends LitElement {
       align-items: center;
       justify-content: space-between;
       gap: 8px;
+      min-width: 0;
     }
 
     .name {
       font-weight: 600;
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .state {
-      font-family: monospace;
       opacity: 0.8;
+      color: var(--secondary-text-color, #666);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .state-icon {
+      --mdc-icon-size: 18px;
     }
 
     .secondary {
@@ -90,12 +142,9 @@ export class PlexSessionsCard extends LitElement {
     this.config = {
       display_mode: "compact",
       show_inactive: false,
-      show_title: true,
       show_media_title: false,
       show_client_name: false,
       show_entity_picture: false,
-      state_style: "symbol",
-      sort_by: "username",
       ...config,
     };
   }
@@ -113,9 +162,7 @@ export class PlexSessionsCard extends LitElement {
 
     return html`
       <ha-card>
-        ${this.config.show_title
-          ? html`<div class="header">${this.config.title ?? "Plex"}</div>`
-          : nothing}
+        <div class="header">${this.config.title ?? "Plex"}</div>
         ${entities.length > 0
           ? html`
               <div class="grid">
@@ -136,31 +183,41 @@ export class PlexSessionsCard extends LitElement {
       this.config?.show_inactive ? true : isEntityActive(entity),
     );
 
-    return [...entities].sort((left, right) => {
-      switch (this.config?.sort_by) {
-        case "state":
-          return left.state.localeCompare(right.state);
-        case "entity_id":
-          return left.entity_id.localeCompare(right.entity_id);
-        case "username":
-        default:
-          return getDisplayName(left).localeCompare(getDisplayName(right));
-      }
-    });
+    return [...entities].sort((left, right) =>
+      getDisplayName(left).localeCompare(getDisplayName(right)),
+    );
   }
 
   private renderEntity(entity: HomeAssistantEntity) {
     const secondary = getSecondaryText(entity, this.config ?? { type: "custom:plex-server-sessions" });
+    const picture = this.config?.show_entity_picture ? getEntityPicture(entity) : undefined;
+    const initials = getDisplayName(entity).slice(0, 1).toUpperCase();
+    const artworkClass = this.config?.display_mode === "detailed" ? "artwork detailed" : "artwork";
 
     return html`
       <div class="tile">
-        <div class="row">
-          <div class="name">${getDisplayName(entity)}</div>
-          <div class="state">${getStateGlyph(entity.state)}</div>
+        <div class="top">
+          ${this.config?.show_entity_picture
+            ? html`
+                <div class=${artworkClass}>
+                  ${picture
+                    ? html`<img src=${picture} alt=${`${getDisplayName(entity)} artwork`} />`
+                    : html`${initials}`}
+                </div>
+              `
+            : nothing}
+          <div class="content">
+            <div class="row">
+              <div class="name">${getDisplayName(entity)}</div>
+              <div class="state">
+                <ha-icon class="state-icon" .icon=${getStateIcon(entity.state)}></ha-icon>
+              </div>
+            </div>
+            ${this.config?.display_mode === "detailed" && secondary
+              ? html`<div class="secondary">${secondary}</div>`
+              : nothing}
+          </div>
         </div>
-        ${this.config?.display_mode === "detailed" && secondary
-          ? html`<div class="secondary">${secondary}</div>`
-          : nothing}
       </div>
     `;
   }

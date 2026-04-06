@@ -30,12 +30,9 @@ entity_patterns:
   - media_player.plex_*
 show_inactive: false
 display_mode: compact
-show_title: true
 show_media_title: false
 show_client_name: false
-state_style: symbol
-tap_action:
-  action: more-info
+show_entity_picture: true
 ```
 
 ## Development

@@ -4,7 +4,7 @@ import type {
   PlexSessionsCardConfig,
 } from "./types";
 
-const DEFAULT_PATTERNS = ["media_player.plex_*", "media_player.plex_client_service_*"];
+const DEFAULT_PATTERNS = ["media_player.plex_*"];
 
 const escapeRegex = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -74,19 +74,29 @@ export const getSecondaryText = (
   return undefined;
 };
 
-export const getStateGlyph = (state: string): string => {
+export const getEntityPicture = (entity: HomeAssistantEntity): string | undefined => {
+  const picture = entity.attributes.entity_picture;
+
+  if (typeof picture === "string" && picture.length > 0) {
+    return picture;
+  }
+
+  return undefined;
+};
+
+export const getStateIcon = (state: string): string => {
   switch (state) {
     case "playing":
-      return ">";
+      return "mdi:play";
     case "paused":
-      return "||";
+      return "mdi:pause";
     case "idle":
-      return "o";
+      return "mdi:stop";
     case "off":
-      return "-";
+      return "mdi:power";
     case "unavailable":
-      return "x";
+      return "mdi:lan-disconnect";
     default:
-      return "?";
+      return "mdi:help-circle-outline";
   }
 };

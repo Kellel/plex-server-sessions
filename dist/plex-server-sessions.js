@@ -558,7 +558,7 @@ function ye(e) {
 }
 //#endregion
 //#region src/helpers.ts
-var be = ["media_player.plex_*", "media_player.plex_client_service_*"], xe = (e) => e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), Se = (e) => RegExp(`^${xe(e).replace(/\\\*/g, ".*")}$`), Ce = (e, t) => {
+var be = ["media_player.plex_*"], xe = (e) => e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), Se = (e) => RegExp(`^${xe(e).replace(/\\\*/g, ".*")}$`), Ce = (e, t) => {
 	let n = t.entities ?? [], r = (t.entity_patterns?.length ? t.entity_patterns : be).map(Se), i = Object.values(e.states).filter((e) => e.entity_id.startsWith("media_player.") ? n.includes(e.entity_id) ? !0 : r.some((t) => t.test(e.entity_id)) : !1);
 	return n.length === 0 ? i : n.map((t) => e.states[t]).filter((e) => !!e);
 }, we = (e) => e.state === "playing" || e.state === "paused", Z = (e) => String(e.attributes.username ?? e.attributes.friendly_name ?? e.entity_id), Te = (e, t) => {
@@ -572,13 +572,16 @@ var be = ["media_player.plex_*", "media_player.plex_client_service_*"], xe = (e)
 		if (typeof t == "string") return t;
 	}
 }, Ee = (e) => {
+	let t = e.attributes.entity_picture;
+	if (typeof t == "string" && t.length > 0) return t;
+}, De = (e) => {
 	switch (e) {
-		case "playing": return ">";
-		case "paused": return "||";
-		case "idle": return "o";
-		case "off": return "-";
-		case "unavailable": return "x";
-		default: return "?";
+		case "playing": return "mdi:play";
+		case "paused": return "mdi:pause";
+		case "idle": return "mdi:stop";
+		case "off": return "mdi:power";
+		case "unavailable": return "mdi:lan-disconnect";
+		default: return "mdi:help-circle-outline";
 	}
 };
 //#endregion
@@ -619,8 +622,49 @@ var $ = class extends Y {
       border-radius: 12px;
       padding: 10px 12px;
       display: grid;
-      gap: 4px;
+      gap: 8px;
       background: var(--card-background-color, #fff);
+    }
+
+    .top {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+
+    .artwork {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: linear-gradient(135deg, #2f3640 0%, #66707a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .artwork.detailed {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+    }
+
+    .artwork img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .content {
+      min-width: 0;
+      display: grid;
+      gap: 4px;
     }
 
     .row {
@@ -628,18 +672,28 @@ var $ = class extends Y {
       align-items: center;
       justify-content: space-between;
       gap: 8px;
+      min-width: 0;
     }
 
     .name {
       font-weight: 600;
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .state {
-      font-family: monospace;
       opacity: 0.8;
+      color: var(--secondary-text-color, #666);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .state-icon {
+      --mdc-icon-size: 18px;
     }
 
     .secondary {
@@ -661,12 +715,9 @@ var $ = class extends Y {
 		this.config = {
 			display_mode: "compact",
 			show_inactive: !1,
-			show_title: !0,
 			show_media_title: !1,
 			show_client_name: !1,
 			show_entity_picture: !1,
-			state_style: "symbol",
-			sort_by: "username",
 			...e
 		};
 	}
@@ -678,7 +729,7 @@ var $ = class extends Y {
 		let e = this.getVisibleEntities();
 		return R`
       <ha-card>
-        ${this.config.show_title ? R`<div class="header">${this.config.title ?? "Plex"}</div>` : B}
+        <div class="header">${this.config.title ?? "Plex"}</div>
         ${e.length > 0 ? R`
               <div class="grid">
                 ${e.map((e) => this.renderEntity(e))}
@@ -688,23 +739,28 @@ var $ = class extends Y {
     `;
 	}
 	getVisibleEntities() {
-		return !this.hass || !this.config ? [] : [...Ce(this.hass, this.config).filter((e) => this.config?.show_inactive ? !0 : we(e))].sort((e, t) => {
-			switch (this.config?.sort_by) {
-				case "state": return e.state.localeCompare(t.state);
-				case "entity_id": return e.entity_id.localeCompare(t.entity_id);
-				default: return Z(e).localeCompare(Z(t));
-			}
-		});
+		return !this.hass || !this.config ? [] : [...Ce(this.hass, this.config).filter((e) => this.config?.show_inactive ? !0 : we(e))].sort((e, t) => Z(e).localeCompare(Z(t)));
 	}
 	renderEntity(e) {
-		let t = Te(e, this.config ?? { type: "custom:plex-server-sessions" });
+		let t = Te(e, this.config ?? { type: "custom:plex-server-sessions" }), n = this.config?.show_entity_picture ? Ee(e) : void 0, r = Z(e).slice(0, 1).toUpperCase(), i = this.config?.display_mode === "detailed" ? "artwork detailed" : "artwork";
 		return R`
       <div class="tile">
-        <div class="row">
-          <div class="name">${Z(e)}</div>
-          <div class="state">${Ee(e.state)}</div>
+        <div class="top">
+          ${this.config?.show_entity_picture ? R`
+                <div class=${i}>
+                  ${n ? R`<img src=${n} alt=${`${Z(e)} artwork`} />` : R`${r}`}
+                </div>
+              ` : B}
+          <div class="content">
+            <div class="row">
+              <div class="name">${Z(e)}</div>
+              <div class="state">
+                <ha-icon class="state-icon" .icon=${De(e.state)}></ha-icon>
+              </div>
+            </div>
+            ${this.config?.display_mode === "detailed" && t ? R`<div class="secondary">${t}</div>` : B}
+          </div>
         </div>
-        ${this.config?.display_mode === "detailed" && t ? R`<div class="secondary">${t}</div>` : B}
       </div>
     `;
 	}

@@ -1,7 +1,5 @@
 export type PlexDisplayMode = "compact" | "detailed";
 
-export type PlexStateStyle = "symbol" | "icon";
-
 export interface HomeAssistantEntity {
   entity_id: string;
   state: string;
@@ -24,15 +22,9 @@ export interface PlexSessionsCardConfig {
   entity_patterns?: string[];
   show_inactive?: boolean;
   display_mode?: PlexDisplayMode;
-  show_title?: boolean;
   show_media_title?: boolean;
   show_client_name?: boolean;
   show_entity_picture?: boolean;
-  state_style?: PlexStateStyle;
-  sort_by?: "username" | "state" | "entity_id";
-  tap_action?: {
-    action: "more-info" | "none";
-  };
 }
 
 declare global {
