@@ -1,0 +1,27 @@
+{
+  "name": "lovelace-plex-sessions-card",
+  "version": "0.1.0",
+  "private": false,
+  "description": "A compact Home Assistant Lovelace card for Plex sessions.",
+  "type": "module",
+  "main": "dist/plex-sessions-card.js",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": [
+    "home-assistant",
+    "lovelace",
+    "hacs",
+    "plex"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vite": "^8.0.3"
+  },
+  "dependencies": {
+    "lit": "^3.3.0"
+  }
+}
