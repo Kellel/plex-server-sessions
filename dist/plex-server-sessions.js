@@ -847,12 +847,7 @@ var $ = class extends W {
     }
 
     .empty-art .sleep-icon.one {
-      right: 30px;
-      top: 2px;
-    }
-
-    .empty-art .sleep-icon.two {
-      right: 12px;
+      right: 18px;
       top: 16px;
     }
 
@@ -908,7 +903,7 @@ var $ = class extends W {
 			body: "No Plex clients are currently available to display."
 		} : {
 			title: "Nobody is watching",
-			body: "Plex clients were found, but none are currently playing or paused."
+			body: ""
 		};
 	}
 	renderEmptyState(e) {
@@ -919,11 +914,10 @@ var $ = class extends W {
               <div class="empty-art" aria-hidden="true">
                 <ha-icon class="sheep-icon" icon="mdi:sheep"></ha-icon>
                 <ha-icon class="sleep-icon one" icon="mdi:sleep"></ha-icon>
-                <ha-icon class="sleep-icon two" icon="mdi:sleep"></ha-icon>
               </div>
             ` : F}
         <div class="empty-title">${e.title}</div>
-        <div class="empty-body">${e.body}</div>
+        ${e.body ? N`<div class="empty-body">${e.body}</div>` : F}
       </div>
     `;
 	}
