@@ -1,4 +1,5 @@
 {
   "name": "Plex Sessions Card",
-  "render_readme": true
+  "render_readme": true,
+  "filename": "plex-server-sessions.js"
 }

@@ -13,7 +13,7 @@ import type {
   PlexSessionsCardConfig,
 } from "./types";
 
-@customElement("plex-sessions-card")
+@customElement("plex-server-sessions")
 export class PlexSessionsCard extends LitElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
@@ -150,7 +150,7 @@ export class PlexSessionsCard extends LitElement {
   }
 
   private renderEntity(entity: HomeAssistantEntity) {
-    const secondary = getSecondaryText(entity, this.config ?? { type: "custom:plex-sessions-card" });
+    const secondary = getSecondaryText(entity, this.config ?? { type: "custom:plex-server-sessions" });
 
     return html`
       <div class="tile">
@@ -168,13 +168,13 @@ export class PlexSessionsCard extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "plex-sessions-card": PlexSessionsCard;
+    "plex-server-sessions": PlexSessionsCard;
   }
 }
 
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type: "plex-sessions-card",
-  name: "Plex Sessions Card",
+  type: "plex-server-sessions",
+  name: "Plex Server Sessions",
   description: "Compact Lovelace card for Plex sessions.",
 });

@@ -5,7 +5,7 @@ export default defineConfig({
     lib: {
       entry: "src/plex-sessions-card.ts",
       formats: ["es"],
-      fileName: () => "plex-sessions-card.js",
+      fileName: () => "plex-server-sessions.js",
     },
     outDir: "dist",
     emptyOutDir: false,

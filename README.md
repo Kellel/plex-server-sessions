@@ -1,4 +1,4 @@
-# Plex Sessions Card
+# Plex Server Sessions
 
 A HACS-installable Lovelace card for compact Plex session visibility in Home Assistant.
 
@@ -18,13 +18,13 @@ This repository is scaffolded and ready for implementation. The current card ren
 ### Manual
 
 1. Build the project with `npm install` and `npm run build`.
-2. Copy `dist/plex-sessions-card.js` into your Home Assistant `www` directory.
+2. Copy `dist/plex-server-sessions.js` into your Home Assistant `www` directory.
 3. Add the resource to Lovelace.
 
 ## Example Config
 
 ```yaml
-type: custom:plex-sessions-card
+type: custom:plex-server-sessions
 title: Plex
 entity_patterns:
   - media_player.plex_*

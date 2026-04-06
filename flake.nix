@@ -1,5 +1,5 @@
 {
-  description = "Dev shell for lovelace-plex-sessions-card";
+  description = "Dev shell for plex-server-sessions";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

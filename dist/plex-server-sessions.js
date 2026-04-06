@@ -697,7 +697,7 @@ var $ = class extends Y {
 		});
 	}
 	renderEntity(e) {
-		let t = Te(e, this.config ?? { type: "custom:plex-sessions-card" });
+		let t = Te(e, this.config ?? { type: "custom:plex-server-sessions" });
 		return R`
       <div class="tile">
         <div class="row">
@@ -709,9 +709,9 @@ var $ = class extends Y {
     `;
 	}
 };
-Q([X({ attribute: !1 })], $.prototype, "hass", void 0), Q([ye()], $.prototype, "config", void 0), $ = Q([ge("plex-sessions-card")], $), window.customCards = window.customCards || [], window.customCards.push({
-	type: "plex-sessions-card",
-	name: "Plex Sessions Card",
+Q([X({ attribute: !1 })], $.prototype, "hass", void 0), Q([ye()], $.prototype, "config", void 0), $ = Q([ge("plex-server-sessions")], $), window.customCards = window.customCards || [], window.customCards.push({
+	type: "plex-server-sessions",
+	name: "Plex Server Sessions",
 	description: "Compact Lovelace card for Plex sessions."
 });
 //#endregion
