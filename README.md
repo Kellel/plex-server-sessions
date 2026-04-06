@@ -26,13 +26,7 @@ This repository is scaffolded and ready for implementation. The current card ren
 ```yaml
 type: custom:plex-server-sessions
 title: Plex
-entity_patterns:
-  - media_player.plex_*
 show_inactive: false
-display_mode: compact
-show_media_title: false
-show_client_name: false
-show_entity_picture: true
 ```
 
 ## Development

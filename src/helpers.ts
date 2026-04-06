@@ -1,77 +1,172 @@
 import type {
   HomeAssistant,
   HomeAssistantEntity,
+  PlexDetailedMedia,
+  PlexPlaybackState,
+  PlexPlaybackStateMeta,
+  PlexProgress,
   PlexSessionsCardConfig,
 } from "./types";
 
-const DEFAULT_PATTERNS = ["media_player.plex_*"];
+const PLAYBACK_STATE_META: Record<PlexPlaybackState, PlexPlaybackStateMeta> = {
+  playing: {
+    icon: "mdi:play",
+    label: "Playing",
+    active: true,
+  },
+  paused: {
+    icon: "mdi:pause",
+    label: "Paused",
+    active: true,
+  },
+  idle: {
+    icon: "mdi:stop",
+    label: "Idle",
+    active: false,
+  },
+  off: {
+    icon: "mdi:power",
+    label: "Off",
+    active: false,
+  },
+  unavailable: {
+    icon: "mdi:lan-disconnect",
+    label: "Unavailable",
+    active: false,
+  },
+  unknown: {
+    icon: "mdi:help-circle-outline",
+    label: "Unknown",
+    active: false,
+  },
+};
 
 const escapeRegex = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const wildcardToRegex = (pattern: string): RegExp =>
-  new RegExp(`^${escapeRegex(pattern).replace(/\\\*/g, ".*")}$`);
 
 export const getConfiguredEntities = (
   hass: HomeAssistant,
   config: PlexSessionsCardConfig,
 ): HomeAssistantEntity[] => {
   const explicit = config.entities ?? [];
-  const patterns = config.entity_patterns?.length
-    ? config.entity_patterns
-    : DEFAULT_PATTERNS;
-  const matchers = patterns.map(wildcardToRegex);
 
-  const discovered = Object.values(hass.states).filter((entity) => {
-    if (!entity.entity_id.startsWith("media_player.")) {
-      return false;
-    }
-
-    if (explicit.includes(entity.entity_id)) {
-      return true;
-    }
-
-    return matchers.some((matcher) => matcher.test(entity.entity_id));
-  });
-
-  if (explicit.length === 0) {
-    return discovered;
+  if (explicit.length > 0) {
+    return explicit
+      .map((entityId) => hass.states[entityId])
+      .filter((entity): entity is HomeAssistantEntity => Boolean(entity));
   }
 
-  return explicit
-    .map((entityId) => hass.states[entityId])
-    .filter((entity): entity is HomeAssistantEntity => Boolean(entity));
+  const matcher = new RegExp(`^${escapeRegex("media_player.plex_*").replace(/\\\*/g, ".*")}$`);
+
+  return Object.values(hass.states).filter(
+    (entity) =>
+      entity.entity_id.startsWith("media_player.") && matcher.test(entity.entity_id),
+  );
 };
 
+export const getPlaybackState = (entity: HomeAssistantEntity): PlexPlaybackState => {
+  switch (entity.state) {
+    case "playing":
+    case "paused":
+    case "idle":
+    case "off":
+    case "unavailable":
+      return entity.state;
+    default:
+      return "unknown";
+  }
+};
+
+export const getPlaybackStateMeta = (
+  entity: HomeAssistantEntity,
+): PlexPlaybackStateMeta => PLAYBACK_STATE_META[getPlaybackState(entity)];
+
 export const isEntityActive = (entity: HomeAssistantEntity): boolean =>
-  entity.state === "playing" || entity.state === "paused";
+  getPlaybackStateMeta(entity).active;
 
 export const getDisplayName = (entity: HomeAssistantEntity): string =>
   String(entity.attributes.username ?? entity.attributes.friendly_name ?? entity.entity_id);
 
-export const getSecondaryText = (
+const getNumberAttribute = (
   entity: HomeAssistantEntity,
-  config: PlexSessionsCardConfig,
+  key: string,
+): number | undefined => {
+  const value = entity.attributes[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+};
+
+const getStringAttribute = (
+  entity: HomeAssistantEntity,
+  key: string,
 ): string | undefined => {
-  if (config.show_media_title) {
-    const series = entity.attributes.media_series_title;
-    const title = entity.attributes.media_title;
-    if (typeof series === "string" && typeof title === "string") {
-      return `${series}: ${title}`;
-    }
-    if (typeof title === "string") {
-      return title;
-    }
+  const value = entity.attributes[key];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+};
+
+export const formatDuration = (value: number): string => {
+  const totalSeconds = Math.max(0, Math.floor(value));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   }
 
-  if (config.show_client_name) {
-    const clientName = entity.attributes.player_source ?? entity.attributes.friendly_name;
-    if (typeof clientName === "string") {
-      return clientName;
-    }
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+};
+
+export const getProgress = (entity: HomeAssistantEntity): PlexProgress | undefined => {
+  const position = getNumberAttribute(entity, "media_position");
+  const duration = getNumberAttribute(entity, "media_duration");
+
+  if (position === undefined || duration === undefined || duration <= 0) {
+    return undefined;
   }
 
-  return undefined;
+  const percent = Math.min(100, Math.max(0, (position / duration) * 100));
+
+  return {
+    position,
+    duration,
+    percent,
+    positionLabel: formatDuration(position),
+    durationLabel: formatDuration(duration),
+  };
+};
+
+export const getEpisodeLabel = (entity: HomeAssistantEntity): string | undefined => {
+  const season = getNumberAttribute(entity, "media_season");
+  const episode = getNumberAttribute(entity, "media_episode");
+
+  if (season === undefined && episode === undefined) {
+    return undefined;
+  }
+
+  if (season !== undefined && episode !== undefined) {
+    return `S${season}E${episode}`;
+  }
+
+  if (episode !== undefined) {
+    return `E${episode}`;
+  }
+
+  return `S${season}`;
+};
+
+export const getDetailedMedia = (entity: HomeAssistantEntity): PlexDetailedMedia => {
+  const mediaTitle = getStringAttribute(entity, "media_title");
+  const seriesTitle = getStringAttribute(entity, "media_series_title");
+  const clientName =
+    getStringAttribute(entity, "player_source") ??
+    getStringAttribute(entity, "friendly_name");
+
+  return {
+    primaryTitle: mediaTitle,
+    secondaryTitle: seriesTitle ?? clientName,
+    detailLabel: getEpisodeLabel(entity),
+    progress: getProgress(entity),
+  };
 };
 
 export const getEntityPicture = (entity: HomeAssistantEntity): string | undefined => {
@@ -82,21 +177,4 @@ export const getEntityPicture = (entity: HomeAssistantEntity): string | undefine
   }
 
   return undefined;
-};
-
-export const getStateIcon = (state: string): string => {
-  switch (state) {
-    case "playing":
-      return "mdi:play";
-    case "paused":
-      return "mdi:pause";
-    case "idle":
-      return "mdi:stop";
-    case "off":
-      return "mdi:power";
-    case "unavailable":
-      return "mdi:lan-disconnect";
-    default:
-      return "mdi:help-circle-outline";
-  }
 };

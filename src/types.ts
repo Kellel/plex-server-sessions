@@ -1,4 +1,31 @@
-export type PlexDisplayMode = "compact" | "detailed";
+export type PlexPlaybackState =
+  | "playing"
+  | "paused"
+  | "idle"
+  | "off"
+  | "unavailable"
+  | "unknown";
+
+export interface PlexPlaybackStateMeta {
+  icon: string;
+  label: string;
+  active: boolean;
+}
+
+export interface PlexProgress {
+  position: number;
+  duration: number;
+  percent: number;
+  positionLabel: string;
+  durationLabel: string;
+}
+
+export interface PlexDetailedMedia {
+  primaryTitle?: string;
+  secondaryTitle?: string;
+  detailLabel?: string;
+  progress?: PlexProgress;
+}
 
 export interface HomeAssistantEntity {
   entity_id: string;
@@ -19,12 +46,7 @@ export interface PlexSessionsCardConfig {
   type: string;
   title?: string;
   entities?: string[];
-  entity_patterns?: string[];
   show_inactive?: boolean;
-  display_mode?: PlexDisplayMode;
-  show_media_title?: boolean;
-  show_client_name?: boolean;
-  show_entity_picture?: boolean;
 }
 
 declare global {

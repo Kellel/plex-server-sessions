@@ -2,10 +2,10 @@ import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import {
   getConfiguredEntities,
+  getDetailedMedia,
   getDisplayName,
   getEntityPicture,
-  getStateIcon,
-  getSecondaryText,
+  getPlaybackStateMeta,
   isEntityActive,
 } from "./helpers";
 import type {
@@ -48,6 +48,15 @@ export class PlexSessionsCard extends LitElement {
       display: grid;
       gap: 8px;
       background: var(--card-background-color, #fff);
+      cursor: pointer;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    .tile:hover,
+    .tile:focus-visible {
+      border-color: var(--primary-color, #03a9f4);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color, #03a9f4) 35%, transparent);
+      outline: none;
     }
 
     .top {
@@ -120,12 +129,42 @@ export class PlexSessionsCard extends LitElement {
       --mdc-icon-size: 18px;
     }
 
-    .secondary {
-      color: var(--secondary-text-color, #666);
-      font-size: 0.9rem;
+    .media-primary {
+      font-size: 0.95rem;
+      font-weight: 600;
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .media-secondary,
+    .media-detail,
+    .progress-time {
+      color: var(--secondary-text-color, #666);
+      font-size: 0.85rem;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .progress {
+      display: grid;
+      gap: 4px;
+    }
+
+    .progress-bar {
+      height: 5px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--primary-color, #03a9f4) 14%, transparent);
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: var(--primary-color, #03a9f4);
     }
 
     .empty {
@@ -140,11 +179,7 @@ export class PlexSessionsCard extends LitElement {
     }
 
     this.config = {
-      display_mode: "compact",
       show_inactive: false,
-      show_media_title: false,
-      show_client_name: false,
-      show_entity_picture: false,
       ...config,
     };
   }
@@ -189,37 +224,82 @@ export class PlexSessionsCard extends LitElement {
   }
 
   private renderEntity(entity: HomeAssistantEntity) {
-    const secondary = getSecondaryText(entity, this.config ?? { type: "custom:plex-server-sessions" });
-    const picture = this.config?.show_entity_picture ? getEntityPicture(entity) : undefined;
+    const picture = getEntityPicture(entity);
     const initials = getDisplayName(entity).slice(0, 1).toUpperCase();
-    const artworkClass = this.config?.display_mode === "detailed" ? "artwork detailed" : "artwork";
+    const playbackState = getPlaybackStateMeta(entity);
+    const detailedMedia = getDetailedMedia(entity);
 
     return html`
-      <div class="tile">
+      <div
+        class="tile"
+        role="button"
+        tabindex="0"
+        @click=${() => this.showMoreInfo(entity.entity_id)}
+        @keydown=${(event: KeyboardEvent) => this.handleTileKeydown(event, entity.entity_id)}
+      >
         <div class="top">
-          ${this.config?.show_entity_picture
-            ? html`
-                <div class=${artworkClass}>
-                  ${picture
-                    ? html`<img src=${picture} alt=${`${getDisplayName(entity)} artwork`} />`
-                    : html`${initials}`}
-                </div>
-              `
-            : nothing}
+          <div class="artwork detailed">
+            ${picture
+              ? html`<img src=${picture} alt=${`${getDisplayName(entity)} artwork`} />`
+              : html`${initials}`}
+          </div>
           <div class="content">
             <div class="row">
               <div class="name">${getDisplayName(entity)}</div>
-              <div class="state">
-                <ha-icon class="state-icon" .icon=${getStateIcon(entity.state)}></ha-icon>
+              <div class="state" title=${playbackState.label}>
+                <ha-icon
+                  class="state-icon"
+                  .icon=${playbackState.icon}
+                  .label=${playbackState.label}
+                ></ha-icon>
               </div>
             </div>
-            ${this.config?.display_mode === "detailed" && secondary
-              ? html`<div class="secondary">${secondary}</div>`
+            ${detailedMedia.primaryTitle
+              ? html`<div class="media-primary">${detailedMedia.primaryTitle}</div>`
+              : nothing}
+            ${detailedMedia.secondaryTitle
+              ? html`<div class="media-secondary">${detailedMedia.secondaryTitle}</div>`
+              : nothing}
+            ${detailedMedia.detailLabel
+              ? html`<div class="media-detail">${detailedMedia.detailLabel}</div>`
+              : nothing}
+            ${detailedMedia.progress
+              ? html`
+                  <div class="progress">
+                    <div class="progress-bar">
+                      <div
+                        class="progress-fill"
+                        style=${`width: ${detailedMedia.progress.percent}%;`}
+                      ></div>
+                    </div>
+                    <div class="progress-time">
+                      ${detailedMedia.progress.positionLabel} /
+                      ${detailedMedia.progress.durationLabel}
+                    </div>
+                  </div>
+                `
               : nothing}
           </div>
         </div>
       </div>
     `;
+  }
+
+  private handleTileKeydown(event: KeyboardEvent, entityId: string) {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    this.showMoreInfo(entityId);
+  }
+
+  private showMoreInfo(entityId: string) {
+    this.dispatchEvent(new CustomEvent("hass-more-info", {
+      detail: { entityId },
+      bubbles: true,
+      composed: true,
+    }));
   }
 }
 
