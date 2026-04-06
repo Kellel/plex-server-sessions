@@ -140,6 +140,7 @@ export class PlexSessionsCard extends LitElement {
 
     .media-secondary,
     .media-detail,
+    .media-library,
     .progress-time {
       color: var(--secondary-text-color, #666);
       font-size: 0.85rem;
@@ -168,8 +169,59 @@ export class PlexSessionsCard extends LitElement {
     }
 
     .empty {
+      display: grid;
+      gap: 10px;
+      padding: 8px 0 4px;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .empty.illustrated {
+      padding: 12px 0 8px;
+    }
+
+    .empty-art {
+      position: relative;
+      width: 120px;
+      height: 76px;
+    }
+
+    .empty-art ha-icon {
+      position: absolute;
       color: var(--secondary-text-color, #666);
+    }
+
+    .empty-art .sheep-icon {
+      --mdc-icon-size: 64px;
+      left: 22px;
+      top: 12px;
+    }
+
+    .empty-art .sleep-icon {
+      --mdc-icon-size: 28px;
+      color: color-mix(in srgb, var(--secondary-text-color, #666) 80%, white);
+    }
+
+    .empty-art .sleep-icon.one {
+      right: 30px;
+      top: 2px;
+    }
+
+    .empty-art .sleep-icon.two {
+      right: 12px;
+      top: 16px;
+    }
+
+    .empty-title {
+      color: var(--primary-text-color, #111);
       font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .empty-body {
+      color: var(--secondary-text-color, #666);
+      font-size: 0.9rem;
+      max-width: 28ch;
     }
   `;
 
@@ -194,6 +246,7 @@ export class PlexSessionsCard extends LitElement {
     }
 
     const entities = this.getVisibleEntities();
+    const emptyState = this.getEmptyState();
 
     return html`
       <ha-card>
@@ -204,7 +257,7 @@ export class PlexSessionsCard extends LitElement {
                 ${entities.map((entity) => this.renderEntity(entity))}
               </div>
             `
-          : html`<div class="empty">No Plex sessions found.</div>`}
+          : this.renderEmptyState(emptyState)}
       </ha-card>
     `;
   }
@@ -221,6 +274,56 @@ export class PlexSessionsCard extends LitElement {
     return [...entities].sort((left, right) =>
       getDisplayName(left).localeCompare(getDisplayName(right)),
     );
+  }
+
+  private getEmptyState(): { title: string; body: string } {
+    if (!this.hass || !this.config) {
+      return {
+        title: "No Plex sessions",
+        body: "The card is waiting for Home Assistant state.",
+      };
+    }
+
+    const configuredEntities = getConfiguredEntities(this.hass, this.config);
+
+    if (configuredEntities.length === 0) {
+      return {
+        title: "No Plex clients found",
+        body: "No matching Plex media players were discovered for this card.",
+      };
+    }
+
+    if (this.config.show_inactive) {
+      return {
+        title: "No Plex sessions",
+        body: "No Plex clients are currently available to display.",
+      };
+    }
+
+    return {
+      title: "Nobody is watching",
+      body: "Plex clients were found, but none are currently playing or paused.",
+    };
+  }
+
+  private renderEmptyState(emptyState: { title: string; body: string }) {
+    const illustrated = emptyState.title === "Nobody is watching";
+
+    return html`
+      <div class=${illustrated ? "empty illustrated" : "empty"}>
+        ${illustrated
+          ? html`
+              <div class="empty-art" aria-hidden="true">
+                <ha-icon class="sheep-icon" icon="mdi:sheep"></ha-icon>
+                <ha-icon class="sleep-icon one" icon="mdi:sleep"></ha-icon>
+                <ha-icon class="sleep-icon two" icon="mdi:sleep"></ha-icon>
+              </div>
+            `
+          : nothing}
+        <div class="empty-title">${emptyState.title}</div>
+        <div class="empty-body">${emptyState.body}</div>
+      </div>
+    `;
   }
 
   private renderEntity(entity: HomeAssistantEntity) {
@@ -262,6 +365,9 @@ export class PlexSessionsCard extends LitElement {
               : nothing}
             ${detailedMedia.detailLabel
               ? html`<div class="media-detail">${detailedMedia.detailLabel}</div>`
+              : nothing}
+            ${detailedMedia.libraryTitle
+              ? html`<div class="media-library">${detailedMedia.libraryTitle}</div>`
               : nothing}
             ${detailedMedia.progress
               ? html`

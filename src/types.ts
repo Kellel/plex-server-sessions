@@ -6,6 +6,18 @@ export type PlexPlaybackState =
   | "unavailable"
   | "unknown";
 
+export type PlexMediaContentType =
+  | "tvshow"
+  | "movie"
+  | "music"
+  | "episode"
+  | "track"
+  | "album"
+  | "artist"
+  | "playlist"
+  | "video"
+  | "unknown";
+
 export interface PlexPlaybackStateMeta {
   icon: string;
   label: string;
@@ -24,6 +36,7 @@ export interface PlexDetailedMedia {
   primaryTitle?: string;
   secondaryTitle?: string;
   detailLabel?: string;
+  libraryTitle?: string;
   progress?: PlexProgress;
 }
 

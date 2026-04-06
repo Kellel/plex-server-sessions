@@ -2,6 +2,7 @@ import type {
   HomeAssistant,
   HomeAssistantEntity,
   PlexDetailedMedia,
+  PlexMediaContentType,
   PlexPlaybackState,
   PlexPlaybackStateMeta,
   PlexProgress,
@@ -81,6 +82,27 @@ export const getPlaybackStateMeta = (
   entity: HomeAssistantEntity,
 ): PlexPlaybackStateMeta => PLAYBACK_STATE_META[getPlaybackState(entity)];
 
+export const getMediaContentType = (
+  entity: HomeAssistantEntity,
+): PlexMediaContentType => {
+  const contentType = getStringAttribute(entity, "media_content_type");
+
+  switch (contentType) {
+    case "tvshow":
+    case "movie":
+    case "music":
+    case "episode":
+    case "track":
+    case "album":
+    case "artist":
+    case "playlist":
+    case "video":
+      return contentType;
+    default:
+      return "unknown";
+  }
+};
+
 export const isEntityActive = (entity: HomeAssistantEntity): boolean =>
   getPlaybackStateMeta(entity).active;
 
@@ -136,6 +158,12 @@ export const getProgress = (entity: HomeAssistantEntity): PlexProgress | undefin
 };
 
 export const getEpisodeLabel = (entity: HomeAssistantEntity): string | undefined => {
+  const contentType = getMediaContentType(entity);
+
+  if (contentType !== "tvshow") {
+    return undefined;
+  }
+
   const season = getNumberAttribute(entity, "media_season");
   const episode = getNumberAttribute(entity, "media_episode");
 
@@ -155,16 +183,23 @@ export const getEpisodeLabel = (entity: HomeAssistantEntity): string | undefined
 };
 
 export const getDetailedMedia = (entity: HomeAssistantEntity): PlexDetailedMedia => {
+  const contentType = getMediaContentType(entity);
   const mediaTitle = getStringAttribute(entity, "media_title");
   const seriesTitle = getStringAttribute(entity, "media_series_title");
-  const clientName =
-    getStringAttribute(entity, "player_source") ??
-    getStringAttribute(entity, "friendly_name");
+  const libraryTitle = getStringAttribute(entity, "media_library_title");
+  const friendlyName = getStringAttribute(entity, "friendly_name");
+  const secondaryTitle =
+    contentType === "tvshow"
+      ? seriesTitle ?? friendlyName
+      : contentType === "movie"
+        ? undefined
+        : seriesTitle ?? friendlyName;
 
   return {
     primaryTitle: mediaTitle,
-    secondaryTitle: seriesTitle ?? clientName,
+    secondaryTitle,
     detailLabel: getEpisodeLabel(entity),
+    libraryTitle,
     progress: getProgress(entity),
   };
 };
