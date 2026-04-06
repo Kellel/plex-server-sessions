@@ -2,9 +2,7 @@
 
 A HACS-installable Lovelace card for compact Plex session visibility in Home Assistant.
 
-## Status
-
-This repository is scaffolded and ready for implementation. The current card renders a placeholder while the session discovery and display logic is built out.
+The card automatically discovers Plex `media_player` entities, shows active sessions by username, renders artwork when available, displays playback state, and exposes richer episode metadata and progress for currently playing media.
 
 ## Installation
 
@@ -23,27 +21,22 @@ This repository is scaffolded and ready for implementation. The current card ren
 
 ## Example Config
 
+Auto-discovery:
+
 ```yaml
 type: custom:plex-server-sessions
 title: Plex
 show_inactive: false
 ```
 
-## Development
+Explicit entities:
 
-### Nix
-
-```bash
-nix develop
-npm install
-npm run build
+```yaml
+type: custom:plex-server-sessions
+title: Plex
+show_inactive: true
+entities:
+  - media_player.plex_client_service_plex_plex_web_firefox_windows
 ```
 
-The dev shell provides Node.js and npm from Nix. If you change the flake, re-enter the shell before reinstalling dependencies.
-
-### Without Nix
-
-```bash
-npm install
-npm run build
-```
+Contributor docs: [docs/CONTRIBUTING.md](/home/kellen/repos/plex-server-sessions/docs/CONTRIBUTING.md)
