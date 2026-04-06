@@ -26,4 +26,6 @@ npm run build
 3. Bump the version in `package.json`.
 4. Create and push a tag like `v0.1.0`.
 
-Pushing the tag triggers the release workflow, which validates the build and creates a GitHub Release for that tag. HACS uses those releases for versioned updates, so the built `dist` file must be committed before you tag a release.
+For beta releases, use a tag like `v0.1.2-beta.1`.
+
+Pushing the tag triggers the release workflow, which validates the build and creates a GitHub Release for that tag. Tags containing `-beta.` are published as GitHub prereleases. HACS uses those releases for versioned updates, so the built `dist` file must be committed before you tag a release.
