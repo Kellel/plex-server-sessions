@@ -3631,12 +3631,12 @@ var $ = class extends E {
 	}
 	render() {
 		if (!this.hass || !this.config) return C;
-		let e = es(this.hass, this.config), t = this.getVisibleEntities(e), n = this.getEmptyState(e, t), r = this.getGridStyle();
+		let e = es(this.hass, this.config), t = this.getVisibleEntities(e), n = this.getEmptyState(e, t);
 		return x`
       <ha-card>
         <div class="header">${this.config.title ?? "Plex"}</div>
         ${t.length > 0 ? x`
-              <div class="grid" style=${r}>
+              <div class="grid">
                 ${t.map((e) => this.renderConfiguredEntity(e))}
               </div>
             ` : this.renderEmptyState(n)}
@@ -3645,10 +3645,6 @@ var $ = class extends E {
 	}
 	getVisibleEntities(e) {
 		return this.config ? [...e.filter((e) => e.kind === "parse-failure" || this.config?.show_inactive ? !0 : ns(e.session))].sort((e, t) => this.getConfiguredEntityLabel(e).localeCompare(this.getConfiguredEntityLabel(t))) : [];
-	}
-	getGridStyle() {
-		let e = Math.max(1, this.config?.max_columns ?? 4);
-		return `max-width: ${e * 220 + (e - 1) * 8}px;`;
 	}
 	getEmptyState(e, t) {
 		return !this.hass || !this.config ? {
