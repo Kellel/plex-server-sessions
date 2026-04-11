@@ -607,14 +607,7 @@ var Te = {
 	let t = Z(e, "media_content_type");
 	switch (t) {
 		case "tvshow":
-		case "movie":
-		case "music":
-		case "episode":
-		case "track":
-		case "album":
-		case "artist":
-		case "playlist":
-		case "video": return t;
+		case "movie": return t;
 		default: return "unknown";
 	}
 }, Oe = (e) => q(e).active, Y = (e) => String(e.attributes.username ?? e.attributes.friendly_name ?? e.entity_id), X = (e, t) => {
@@ -640,12 +633,12 @@ var Te = {
 	let t = X(e, "media_season"), n = X(e, "media_episode");
 	if (!(t === void 0 && n === void 0)) return t !== void 0 && n !== void 0 ? `S${t}E${n}` : n === void 0 ? `S${t}` : `E${n}`;
 }, Me = (e) => {
-	let t = J(e), n = Z(e, "media_title"), r = Z(e, "media_series_title"), i = Z(e, "media_library_title"), a = Z(e, "friendly_name");
+	let t = J(e), n = Z(e, "media_title"), r = Z(e, "media_series_title"), i = je(e), a = Z(e, "media_library_title"), o = Z(e, "friendly_name");
 	return {
 		primaryTitle: n,
-		secondaryTitle: t === "tvshow" ? r ?? a : t === "movie" ? void 0 : r ?? a,
-		detailLabel: je(e),
-		libraryTitle: i,
+		secondaryTitle: t === "tvshow" ? [r, i].filter(Boolean).join(" · ") || o : t === "movie" ? void 0 : r ?? o,
+		detailLabel: t === "tvshow" ? void 0 : i,
+		libraryTitle: a,
 		progress: Ae(e)
 	};
 }, Ne = (e) => {
@@ -683,14 +676,16 @@ var $ = class extends W {
       display: grid;
       gap: 8px;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      justify-content: start;
     }
 
     .tile {
       border: 1px solid var(--divider-color, #d9d9d9);
       border-radius: 12px;
-      padding: 10px 12px;
+      padding: 10px 12px 8px;
       display: grid;
-      gap: 8px;
+      grid-template-rows: auto 1fr auto;
+      gap: 6px;
       background: var(--card-background-color, #fff);
       cursor: pointer;
       transition: border-color 120ms ease, box-shadow 120ms ease;
@@ -707,7 +702,7 @@ var $ = class extends W {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr);
       gap: 10px;
-      align-items: center;
+      align-items: start;
     }
 
     .artwork {
@@ -742,6 +737,8 @@ var $ = class extends W {
       min-width: 0;
       display: grid;
       gap: 4px;
+      align-content: start;
+      min-height: 72px;
     }
 
     .row {
@@ -752,12 +749,19 @@ var $ = class extends W {
       min-width: 0;
     }
 
+    .identity {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
     .name {
       font-weight: 600;
-      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
     .state {
@@ -784,7 +788,6 @@ var $ = class extends W {
 
     .media-secondary,
     .media-detail,
-    .media-library,
     .progress-time {
       color: var(--secondary-text-color, #666);
       font-size: 0.85rem;
@@ -794,9 +797,29 @@ var $ = class extends W {
       white-space: nowrap;
     }
 
+    .library-trail {
+      min-width: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--secondary-text-color, #666);
+      font-size: 0.8rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex-shrink: 1;
+    }
+
+    .library-icon {
+      --mdc-icon-size: 14px;
+      flex-shrink: 0;
+    }
+
     .progress {
       display: grid;
-      gap: 4px;
+      gap: 3px;
+      grid-column: 1 / -1;
+      align-content: end;
     }
 
     .progress-bar {
@@ -868,6 +891,7 @@ var $ = class extends W {
 		if (!e.type) throw Error("Card type is required");
 		this.config = {
 			show_inactive: !1,
+			max_columns: 4,
 			...e
 		};
 	}
@@ -876,12 +900,12 @@ var $ = class extends W {
 	}
 	render() {
 		if (!this.hass || !this.config) return F;
-		let e = this.getVisibleEntities(), t = this.getEmptyState();
+		let e = this.getVisibleEntities(), t = this.getEmptyState(), n = this.getGridStyle();
 		return N`
       <ha-card>
         <div class="header">${this.config.title ?? "Plex"}</div>
         ${e.length > 0 ? N`
-              <div class="grid">
+              <div class="grid" style=${n}>
                 ${e.map((e) => this.renderEntity(e))}
               </div>
             ` : this.renderEmptyState(t)}
@@ -890,6 +914,10 @@ var $ = class extends W {
 	}
 	getVisibleEntities() {
 		return !this.hass || !this.config ? [] : [...K(this.hass, this.config).filter((e) => this.config?.show_inactive ? !0 : Oe(e))].sort((e, t) => Y(e).localeCompare(Y(t)));
+	}
+	getGridStyle() {
+		let e = Math.max(1, this.config?.max_columns ?? 4);
+		return `max-width: ${e * 220 + (e - 1) * 8}px;`;
 	}
 	getEmptyState() {
 		return !this.hass || !this.config ? {
@@ -937,7 +965,15 @@ var $ = class extends W {
           </div>
           <div class="content">
             <div class="row">
-              <div class="name">${Y(e)}</div>
+              <div class="identity">
+                <div class="name">${Y(e)}</div>
+                ${i.libraryTitle ? N`
+                      <div class="library-trail">
+                        <ha-icon class="library-icon" icon="mdi:chevron-right"></ha-icon>
+                        <span>${i.libraryTitle}</span>
+                      </div>
+                    ` : F}
+              </div>
               <div class="state" title=${r.label}>
                 <ha-icon
                   class="state-icon"
@@ -949,23 +985,22 @@ var $ = class extends W {
             ${i.primaryTitle ? N`<div class="media-primary">${i.primaryTitle}</div>` : F}
             ${i.secondaryTitle ? N`<div class="media-secondary">${i.secondaryTitle}</div>` : F}
             ${i.detailLabel ? N`<div class="media-detail">${i.detailLabel}</div>` : F}
-            ${i.libraryTitle ? N`<div class="media-library">${i.libraryTitle}</div>` : F}
-            ${i.progress ? N`
-                  <div class="progress">
-                    <div class="progress-bar">
-                      <div
-                        class="progress-fill"
-                        style=${`width: ${i.progress.percent}%;`}
-                      ></div>
-                    </div>
-                    <div class="progress-time">
-                      ${i.progress.positionLabel} /
-                      ${i.progress.durationLabel}
-                    </div>
-                  </div>
-                ` : F}
           </div>
         </div>
+        ${i.progress ? N`
+              <div class="progress">
+                <div class="progress-bar">
+                  <div
+                    class="progress-fill"
+                    style=${`width: ${i.progress.percent}%;`}
+                  ></div>
+                </div>
+                <div class="progress-time">
+                  ${i.progress.positionLabel} /
+                  ${i.progress.durationLabel}
+                </div>
+              </div>
+            ` : F}
       </div>
     `;
 	}

@@ -90,13 +90,6 @@ export const getMediaContentType = (
   switch (contentType) {
     case "tvshow":
     case "movie":
-    case "music":
-    case "episode":
-    case "track":
-    case "album":
-    case "artist":
-    case "playlist":
-    case "video":
       return contentType;
     default:
       return "unknown";
@@ -186,11 +179,12 @@ export const getDetailedMedia = (entity: HomeAssistantEntity): PlexDetailedMedia
   const contentType = getMediaContentType(entity);
   const mediaTitle = getStringAttribute(entity, "media_title");
   const seriesTitle = getStringAttribute(entity, "media_series_title");
+  const episodeLabel = getEpisodeLabel(entity);
   const libraryTitle = getStringAttribute(entity, "media_library_title");
   const friendlyName = getStringAttribute(entity, "friendly_name");
   const secondaryTitle =
     contentType === "tvshow"
-      ? seriesTitle ?? friendlyName
+      ? [seriesTitle, episodeLabel].filter(Boolean).join(" · ") || friendlyName
       : contentType === "movie"
         ? undefined
         : seriesTitle ?? friendlyName;
@@ -198,7 +192,7 @@ export const getDetailedMedia = (entity: HomeAssistantEntity): PlexDetailedMedia
   return {
     primaryTitle: mediaTitle,
     secondaryTitle,
-    detailLabel: getEpisodeLabel(entity),
+    detailLabel: contentType === "tvshow" ? undefined : episodeLabel,
     libraryTitle,
     progress: getProgress(entity),
   };

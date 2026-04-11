@@ -9,13 +9,6 @@ export type PlexPlaybackState =
 export type PlexMediaContentType =
   | "tvshow"
   | "movie"
-  | "music"
-  | "episode"
-  | "track"
-  | "album"
-  | "artist"
-  | "playlist"
-  | "video"
   | "unknown";
 
 export interface PlexPlaybackStateMeta {
@@ -60,6 +53,7 @@ export interface PlexSessionsCardConfig {
   title?: string;
   entities?: string[];
   show_inactive?: boolean;
+  max_columns?: number;
 }
 
 declare global {

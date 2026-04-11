@@ -9,7 +9,8 @@
     "useDefineForClassFields": false,
     "noEmit": true,
     "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "types": ["vite/client"]
   },
-  "include": ["src/**/*.ts", "vite.config.ts"]
+  "include": ["src/**/*.ts", "dev/**/*.ts", "vite.config.ts"]
 }

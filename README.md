@@ -27,6 +27,7 @@ Auto-discovery:
 type: custom:plex-server-sessions
 title: Plex
 show_inactive: false
+max_columns: 4
 ```
 
 Explicit entities:
@@ -35,6 +36,7 @@ Explicit entities:
 type: custom:plex-server-sessions
 title: Plex
 show_inactive: true
+max_columns: 4
 entities:
   - media_player.plex_client_service_plex_plex_web_firefox_windows
 ```

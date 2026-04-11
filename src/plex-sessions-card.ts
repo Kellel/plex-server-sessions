@@ -39,14 +39,16 @@ export class PlexSessionsCard extends LitElement {
       display: grid;
       gap: 8px;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      justify-content: start;
     }
 
     .tile {
       border: 1px solid var(--divider-color, #d9d9d9);
       border-radius: 12px;
-      padding: 10px 12px;
+      padding: 10px 12px 8px;
       display: grid;
-      gap: 8px;
+      grid-template-rows: auto 1fr auto;
+      gap: 6px;
       background: var(--card-background-color, #fff);
       cursor: pointer;
       transition: border-color 120ms ease, box-shadow 120ms ease;
@@ -63,7 +65,7 @@ export class PlexSessionsCard extends LitElement {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr);
       gap: 10px;
-      align-items: center;
+      align-items: start;
     }
 
     .artwork {
@@ -98,6 +100,8 @@ export class PlexSessionsCard extends LitElement {
       min-width: 0;
       display: grid;
       gap: 4px;
+      align-content: start;
+      min-height: 72px;
     }
 
     .row {
@@ -108,12 +112,19 @@ export class PlexSessionsCard extends LitElement {
       min-width: 0;
     }
 
+    .identity {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
     .name {
       font-weight: 600;
-      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
     .state {
@@ -140,7 +151,6 @@ export class PlexSessionsCard extends LitElement {
 
     .media-secondary,
     .media-detail,
-    .media-library,
     .progress-time {
       color: var(--secondary-text-color, #666);
       font-size: 0.85rem;
@@ -150,9 +160,29 @@ export class PlexSessionsCard extends LitElement {
       white-space: nowrap;
     }
 
+    .library-trail {
+      min-width: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--secondary-text-color, #666);
+      font-size: 0.8rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex-shrink: 1;
+    }
+
+    .library-icon {
+      --mdc-icon-size: 14px;
+      flex-shrink: 0;
+    }
+
     .progress {
       display: grid;
-      gap: 4px;
+      gap: 3px;
+      grid-column: 1 / -1;
+      align-content: end;
     }
 
     .progress-bar {
@@ -227,6 +257,7 @@ export class PlexSessionsCard extends LitElement {
 
     this.config = {
       show_inactive: false,
+      max_columns: 4,
       ...config,
     };
   }
@@ -242,13 +273,14 @@ export class PlexSessionsCard extends LitElement {
 
     const entities = this.getVisibleEntities();
     const emptyState = this.getEmptyState();
+    const gridStyle = this.getGridStyle();
 
     return html`
       <ha-card>
         <div class="header">${this.config.title ?? "Plex"}</div>
         ${entities.length > 0
           ? html`
-              <div class="grid">
+              <div class="grid" style=${gridStyle}>
                 ${entities.map((entity) => this.renderEntity(entity))}
               </div>
             `
@@ -269,6 +301,15 @@ export class PlexSessionsCard extends LitElement {
     return [...entities].sort((left, right) =>
       getDisplayName(left).localeCompare(getDisplayName(right)),
     );
+  }
+
+  private getGridStyle(): string {
+    const maxColumns = Math.max(1, this.config?.max_columns ?? 4);
+    const minTileWidth = 220;
+    const gap = 8;
+    const maxWidth = (maxColumns * minTileWidth) + ((maxColumns - 1) * gap);
+
+    return `max-width: ${maxWidth}px;`;
   }
 
   private getEmptyState(): { title: string; body: string } {
@@ -344,7 +385,17 @@ export class PlexSessionsCard extends LitElement {
           </div>
           <div class="content">
             <div class="row">
-              <div class="name">${getDisplayName(entity)}</div>
+              <div class="identity">
+                <div class="name">${getDisplayName(entity)}</div>
+                ${detailedMedia.libraryTitle
+                  ? html`
+                      <div class="library-trail">
+                        <ha-icon class="library-icon" icon="mdi:chevron-right"></ha-icon>
+                        <span>${detailedMedia.libraryTitle}</span>
+                      </div>
+                    `
+                  : nothing}
+              </div>
               <div class="state" title=${playbackState.label}>
                 <ha-icon
                   class="state-icon"
@@ -362,27 +413,24 @@ export class PlexSessionsCard extends LitElement {
             ${detailedMedia.detailLabel
               ? html`<div class="media-detail">${detailedMedia.detailLabel}</div>`
               : nothing}
-            ${detailedMedia.libraryTitle
-              ? html`<div class="media-library">${detailedMedia.libraryTitle}</div>`
-              : nothing}
-            ${detailedMedia.progress
-              ? html`
-                  <div class="progress">
-                    <div class="progress-bar">
-                      <div
-                        class="progress-fill"
-                        style=${`width: ${detailedMedia.progress.percent}%;`}
-                      ></div>
-                    </div>
-                    <div class="progress-time">
-                      ${detailedMedia.progress.positionLabel} /
-                      ${detailedMedia.progress.durationLabel}
-                    </div>
-                  </div>
-                `
-              : nothing}
           </div>
         </div>
+        ${detailedMedia.progress
+          ? html`
+              <div class="progress">
+                <div class="progress-bar">
+                  <div
+                    class="progress-fill"
+                    style=${`width: ${detailedMedia.progress.percent}%;`}
+                  ></div>
+                </div>
+                <div class="progress-time">
+                  ${detailedMedia.progress.positionLabel} /
+                  ${detailedMedia.progress.durationLabel}
+                </div>
+              </div>
+            `
+          : nothing}
       </div>
     `;
   }
