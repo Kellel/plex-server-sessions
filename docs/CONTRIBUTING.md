@@ -19,6 +19,14 @@ npm install
 npm run build
 ```
 
+### Local Preview
+
+```bash
+npm run dev
+```
+
+This starts a local Vite preview page with mocked Home Assistant fixtures so you can iterate on the card UI without pushing a beta release into HACS.
+
 ## Release Process
 
 1. Run `npm run build`.
