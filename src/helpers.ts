@@ -6,6 +6,7 @@ import type {
   PlexPlaybackState,
   PlexPlaybackStateMeta,
   PlexProgress,
+  PlexSupportedMediaContentType,
   PlexSessionsCardConfig,
 } from "./types";
 
@@ -44,6 +45,37 @@ const PLAYBACK_STATE_META: Record<PlexPlaybackState, PlexPlaybackStateMeta> = {
 
 const escapeRegex = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const assertNever = (value: never): never => {
+  throw new Error(`Unhandled Plex media content type: ${String(value)}`);
+};
+
+const buildDetailedMedia = (fields: {
+  primaryTitle: string | undefined;
+  secondaryTitle: string | undefined;
+  libraryTitle: string | undefined;
+  progress: PlexProgress | undefined;
+}): PlexDetailedMedia => {
+  const detailedMedia: PlexDetailedMedia = {};
+
+  if (fields.primaryTitle !== undefined) {
+    detailedMedia.primaryTitle = fields.primaryTitle;
+  }
+
+  if (fields.secondaryTitle !== undefined) {
+    detailedMedia.secondaryTitle = fields.secondaryTitle;
+  }
+
+  if (fields.libraryTitle !== undefined) {
+    detailedMedia.libraryTitle = fields.libraryTitle;
+  }
+
+  if (fields.progress !== undefined) {
+    detailedMedia.progress = fields.progress;
+  }
+
+  return detailedMedia;
+};
 
 export const getConfiguredEntities = (
   hass: HomeAssistant,
@@ -104,7 +136,7 @@ export const getDisplayName = (entity: HomeAssistantEntity): string =>
 
 const getNumberAttribute = (
   entity: HomeAssistantEntity,
-  key: string,
+  key: keyof HomeAssistantEntity["attributes"],
 ): number | undefined => {
   const value = entity.attributes[key];
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
@@ -112,7 +144,7 @@ const getNumberAttribute = (
 
 const getStringAttribute = (
   entity: HomeAssistantEntity,
-  key: string,
+  key: keyof HomeAssistantEntity["attributes"],
 ): string | undefined => {
   const value = entity.attributes[key];
   return typeof value === "string" && value.length > 0 ? value : undefined;
@@ -150,13 +182,7 @@ export const getProgress = (entity: HomeAssistantEntity): PlexProgress | undefin
   };
 };
 
-export const getEpisodeLabel = (entity: HomeAssistantEntity): string | undefined => {
-  const contentType = getMediaContentType(entity);
-
-  if (contentType !== "tvshow") {
-    return undefined;
-  }
-
+const getTvShowEpisodeLabel = (entity: HomeAssistantEntity): string | undefined => {
   const season = getNumberAttribute(entity, "media_season");
   const episode = getNumberAttribute(entity, "media_episode");
 
@@ -175,27 +201,55 @@ export const getEpisodeLabel = (entity: HomeAssistantEntity): string | undefined
   return `S${season}`;
 };
 
-export const getDetailedMedia = (entity: HomeAssistantEntity): PlexDetailedMedia => {
-  const contentType = getMediaContentType(entity);
+const getDetailedMediaForSupportedType = (
+  entity: HomeAssistantEntity,
+  contentType: PlexSupportedMediaContentType,
+): PlexDetailedMedia => {
   const mediaTitle = getStringAttribute(entity, "media_title");
-  const seriesTitle = getStringAttribute(entity, "media_series_title");
-  const episodeLabel = getEpisodeLabel(entity);
   const libraryTitle = getStringAttribute(entity, "media_library_title");
   const friendlyName = getStringAttribute(entity, "friendly_name");
-  const secondaryTitle =
-    contentType === "tvshow"
-      ? [seriesTitle, episodeLabel].filter(Boolean).join(" · ") || friendlyName
-      : contentType === "movie"
-        ? undefined
-        : seriesTitle ?? friendlyName;
 
-  return {
+  switch (contentType) {
+    case "tvshow": {
+      const seriesTitle = getStringAttribute(entity, "media_series_title");
+      const episodeLabel = getTvShowEpisodeLabel(entity);
+
+      return buildDetailedMedia({
+        primaryTitle: mediaTitle,
+        secondaryTitle: [seriesTitle, episodeLabel].filter(Boolean).join(" · ") || friendlyName,
+        libraryTitle,
+        progress: getProgress(entity),
+      });
+    }
+    case "movie":
+      return buildDetailedMedia({
+        primaryTitle: mediaTitle,
+        secondaryTitle: undefined,
+        libraryTitle,
+        progress: getProgress(entity),
+      });
+    default:
+      return assertNever(contentType);
+  }
+};
+
+export const getDetailedMedia = (entity: HomeAssistantEntity): PlexDetailedMedia => {
+  const contentType = getMediaContentType(entity);
+
+  if (contentType !== "unknown") {
+    return getDetailedMediaForSupportedType(entity, contentType);
+  }
+
+  const mediaTitle = getStringAttribute(entity, "media_title");
+  const libraryTitle = getStringAttribute(entity, "media_library_title");
+  const friendlyName = getStringAttribute(entity, "friendly_name");
+
+  return buildDetailedMedia({
     primaryTitle: mediaTitle,
-    secondaryTitle,
-    detailLabel: contentType === "tvshow" ? undefined : episodeLabel,
+    secondaryTitle: friendlyName,
     libraryTitle,
     progress: getProgress(entity),
-  };
+  });
 };
 
 export const getEntityPicture = (entity: HomeAssistantEntity): string | undefined => {

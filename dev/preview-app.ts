@@ -235,10 +235,10 @@ const fixtures: Array<{
 
 @customElement("preview-app")
 class PreviewApp extends LitElement {
-  @state() private fixtureId = fixtures[0].id;
+  @state() private fixtureId = fixtures[0]?.id ?? "";
   @state() private selectedEntityId: string | null = null;
 
-  static styles = css`
+  static override styles = css`
     :host {
       display: block;
       min-height: 100vh;
@@ -535,19 +535,23 @@ class PreviewApp extends LitElement {
   `;
 
   private get activeFixture() {
-    return fixtures.find((fixture) => fixture.id === this.fixtureId) ?? fixtures[0];
+    return fixtures.find((fixture) => fixture.id === this.fixtureId) ?? fixtures[0] ?? null;
   }
 
   private get selectedEntity(): HomeAssistantEntity | undefined {
-    if (!this.selectedEntityId) {
+    if (!this.selectedEntityId || !this.activeFixture) {
       return undefined;
     }
 
     return this.activeFixture.hass.states[this.selectedEntityId];
   }
 
-  render() {
+  override render() {
     const fixture = this.activeFixture;
+
+    if (!fixture) {
+      return nothing;
+    }
 
     return html`
       <main>
@@ -652,9 +656,6 @@ class PreviewApp extends LitElement {
               ? html`<div class="detail-subtitle">${detailedMedia.secondaryTitle}</div>`
               : nothing}
             <div class="detail-chips">
-              ${detailedMedia.detailLabel
-                ? html`<div class="detail-chip">${detailedMedia.detailLabel}</div>`
-                : nothing}
               ${detailedMedia.libraryTitle
                 ? html`<div class="detail-chip">${detailedMedia.libraryTitle}</div>`
                 : nothing}
@@ -704,15 +705,15 @@ class PreviewCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @property({ attribute: false }) public config!: PlexSessionsCardConfig;
 
-  render() {
+  override render() {
     return html`<plex-server-sessions></plex-server-sessions>`;
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     this.syncCard();
   }
 
-  updated() {
+  override updated() {
     this.syncCard();
   }
 
