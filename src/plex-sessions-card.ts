@@ -294,14 +294,12 @@ export class PlexSessionsCard extends LitElement {
     const configuredEntities = getConfiguredEntities(this.hass, this.config);
     const entities = this.getVisibleEntities(configuredEntities);
     const emptyState = this.getEmptyState(configuredEntities, entities);
-    const gridStyle = this.getGridStyle();
-
     return html`
       <ha-card>
         <div class="header">${this.config.title ?? "Plex"}</div>
         ${entities.length > 0
           ? html`
-              <div class="grid" style=${gridStyle}>
+              <div class="grid">
                 ${entities.map((entity) => this.renderConfiguredEntity(entity))}
               </div>
             `
@@ -326,15 +324,6 @@ export class PlexSessionsCard extends LitElement {
     return [...entities].sort((left, right) =>
       this.getConfiguredEntityLabel(left).localeCompare(this.getConfiguredEntityLabel(right)),
     );
-  }
-
-  private getGridStyle(): string {
-    const maxColumns = Math.max(1, this.config?.max_columns ?? 4);
-    const minTileWidth = 220;
-    const gap = 8;
-    const maxWidth = (maxColumns * minTileWidth) + ((maxColumns - 1) * gap);
-
-    return `max-width: ${maxWidth}px;`;
   }
 
   private getEmptyState(
