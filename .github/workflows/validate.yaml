@@ -25,3 +25,6 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Verify committed dist is up to date
+        run: git diff --exit-code -- dist/plex-server-sessions.js
