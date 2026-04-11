@@ -4,6 +4,12 @@ A HACS-installable Lovelace card for compact Plex session visibility in Home Ass
 
 The card automatically discovers Plex `media_player` entities, shows active sessions by username, renders artwork when available, displays playback state, and exposes richer episode metadata and progress for currently playing media.
 
+## Media Types
+
+This card currently implements the Plex media types that I have real Home Assistant examples for. There are known Plex media types that I am intentionally not formatting yet.
+
+If you run into an unsupported type, please open a GitHub issue with example Home Assistant entity data and I will happily use that to implement support for it.
+
 ## Installation
 
 ### HACS

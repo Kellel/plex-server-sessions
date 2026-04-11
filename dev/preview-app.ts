@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import {
+  mdiAlertCircleOutline,
   mdiChevronRight,
   mdiHelpCircleOutline,
   mdiLanDisconnect,
@@ -19,6 +20,7 @@ import {
   getEntityPicture,
   getPlaybackStateMeta,
 } from "../src/helpers";
+import { parsePlexSession } from "../src/parser";
 import type { HomeAssistant, HomeAssistantEntity, PlexSessionsCardConfig } from "../src/types";
 
 class HaCardMock extends HTMLElement {}
@@ -99,6 +101,8 @@ const iconToPath = (icon: string): string => {
   switch (icon) {
     case "mdi:play":
       return mdiPlay;
+    case "mdi:alert-circle-outline":
+      return mdiAlertCircleOutline;
     case "mdi:pause":
       return mdiPause;
     case "mdi:stop":
@@ -126,17 +130,14 @@ const episodeEntity: HomeAssistantEntity = {
   entity_id: "media_player.plex_client_service_plex_plex_web_firefox_windows",
   state: "paused",
   attributes: {
-    media_content_id: 6168,
     media_content_type: "tvshow",
     media_duration: 1420,
     media_position: 209,
-    media_position_updated_at: "2026-04-05T19:43:23.347699+00:00",
     media_title: "A Resident of the Village",
     media_series_title: "An Adventurer's Daily Grind at Age 29",
     media_season: 1,
     media_episode: 8,
     media_library_title: "TV Shows",
-    player_source: "session",
     username: "kzorro",
     entity_picture:
       "https://images.unsplash.com/photo-1518929458119-e5bf444c30f4?auto=format&fit=crop&w=300&q=80",
@@ -148,14 +149,11 @@ const movieEntity: HomeAssistantEntity = {
   entity_id: "media_player.plex_plex_for_android_tv_google_tv_streamer",
   state: "playing",
   attributes: {
-    media_content_id: 6916,
     media_content_type: "movie",
     media_duration: 10822,
     media_position: 7232,
-    media_position_updated_at: "2026-04-06T06:54:32.804510+00:00",
     media_title: "Oppenheimer (2023)",
     media_library_title: "Movies",
-    player_source: "session",
     username: "kzorro",
     entity_picture:
       "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=300&q=80",
@@ -180,6 +178,17 @@ const unavailableEntity: HomeAssistantEntity = {
     media_content_type: "movie",
     username: "sam",
     friendly_name: "Plex (Bedroom TV)",
+  },
+};
+
+const malformedEntity: HomeAssistantEntity = {
+  entity_id: "media_player.plex_broken_client",
+  state: "playing",
+  attributes: {
+    media_content_type: "movie",
+    media_duration: "1420",
+    media_title: 123,
+    friendly_name: "Broken Plex Client",
   },
 };
 
@@ -215,6 +224,16 @@ const fixtures: Array<{
     id: "all-clients",
     label: "Show inactive clients",
     hass: makeHass([episodeEntity, movieEntity, idleEntity, unavailableEntity]),
+    config: {
+      type: "custom:plex-server-sessions",
+      title: "Plex",
+      show_inactive: true,
+    },
+  },
+  {
+    id: "parse-failure",
+    label: "Parse failure",
+    hass: makeHass([episodeEntity, malformedEntity]),
     config: {
       type: "custom:plex-server-sessions",
       title: "Plex",
@@ -546,6 +565,10 @@ class PreviewApp extends LitElement {
     return this.activeFixture.hass.states[this.selectedEntityId];
   }
 
+  private get selectedSession() {
+    return this.selectedEntity ? parsePlexSession(this.selectedEntity) : undefined;
+  }
+
   override render() {
     const fixture = this.activeFixture;
 
@@ -622,8 +645,9 @@ class PreviewApp extends LitElement {
 
   private renderSelectedEntity() {
     const entity = this.selectedEntity;
+    const session = this.selectedSession;
 
-    if (!entity) {
+    if (!entity || !session) {
       return html`
         <div class="empty-detail">
           Click a card tile to inspect the entity data and preview a lightweight detail view.
@@ -631,26 +655,26 @@ class PreviewApp extends LitElement {
       `;
     }
 
-    const playbackState = getPlaybackStateMeta(entity);
-    const detailedMedia = getDetailedMedia(entity);
-    const picture = getEntityPicture(entity);
-    const initials = getDisplayName(entity).slice(0, 1).toUpperCase();
+    const playbackState = getPlaybackStateMeta(session);
+    const detailedMedia = getDetailedMedia(session);
+    const picture = getEntityPicture(session);
+    const initials = getDisplayName(session).slice(0, 1).toUpperCase();
 
     return html`
       <div class="detail-card">
         <div class="detail-hero">
           <div class="detail-art">
             ${picture
-              ? html`<img src=${picture} alt=${`${getDisplayName(entity)} artwork`} />`
+              ? html`<img src=${picture} alt=${`${getDisplayName(session)} artwork`} />`
               : html`${initials}`}
           </div>
           <div class="detail-meta">
             <div class="detail-user">
               <ha-icon .icon=${playbackState.icon}></ha-icon>
-              <span>${getDisplayName(entity)} · ${playbackState.label}</span>
+              <span>${getDisplayName(session)} · ${playbackState.label}</span>
             </div>
             <h3 class="detail-main-title">
-              ${detailedMedia.primaryTitle ?? getDisplayName(entity)}
+              ${detailedMedia.primaryTitle ?? getDisplayName(session)}
             </h3>
             ${detailedMedia.secondaryTitle
               ? html`<div class="detail-subtitle">${detailedMedia.secondaryTitle}</div>`
@@ -661,7 +685,7 @@ class PreviewApp extends LitElement {
                 : nothing}
             </div>
             <div class="detail-entity">
-              ${entity.attributes.friendly_name ?? entity.entity_id}
+              ${session.friendlyName ?? entity.entity_id}
             </div>
           </div>
         </div>

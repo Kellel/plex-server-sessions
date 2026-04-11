@@ -9,8 +9,10 @@ import {
   isEntityActive,
 } from "./helpers";
 import type {
+  PlexConfiguredEntity,
+  PlexParseFailure,
   HomeAssistant,
-  HomeAssistantEntity,
+  PlexSession,
   PlexSessionsCardConfig,
 } from "./types";
 
@@ -140,6 +142,11 @@ export class PlexSessionsCard extends LitElement {
       --mdc-icon-size: 18px;
     }
 
+    .warning-icon {
+      --mdc-icon-size: 22px;
+      color: var(--warning-color, #b26a00);
+    }
+
     .media-primary {
       font-size: 0.95rem;
       font-weight: 600;
@@ -247,6 +254,20 @@ export class PlexSessionsCard extends LitElement {
       font-size: 0.9rem;
       max-width: 28ch;
     }
+
+    .parse-warning {
+      display: grid;
+      place-items: center;
+      gap: 8px;
+      min-height: 108px;
+      text-align: center;
+    }
+
+    .parse-warning-label {
+      color: var(--secondary-text-color, #666);
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
   `;
 
   public setConfig(config: PlexSessionsCardConfig): void {
@@ -270,8 +291,9 @@ export class PlexSessionsCard extends LitElement {
       return nothing;
     }
 
-    const entities = this.getVisibleEntities();
-    const emptyState = this.getEmptyState();
+    const configuredEntities = getConfiguredEntities(this.hass, this.config);
+    const entities = this.getVisibleEntities(configuredEntities);
+    const emptyState = this.getEmptyState(configuredEntities, entities);
     const gridStyle = this.getGridStyle();
 
     return html`
@@ -280,7 +302,7 @@ export class PlexSessionsCard extends LitElement {
         ${entities.length > 0
           ? html`
               <div class="grid" style=${gridStyle}>
-                ${entities.map((entity) => this.renderEntity(entity))}
+                ${entities.map((entity) => this.renderConfiguredEntity(entity))}
               </div>
             `
           : this.renderEmptyState(emptyState)}
@@ -288,17 +310,21 @@ export class PlexSessionsCard extends LitElement {
     `;
   }
 
-  private getVisibleEntities(): HomeAssistantEntity[] {
-    if (!this.hass || !this.config) {
+  private getVisibleEntities(configuredEntities: PlexConfiguredEntity[]): PlexConfiguredEntity[] {
+    if (!this.config) {
       return [];
     }
 
-    const entities = getConfiguredEntities(this.hass, this.config).filter((entity) =>
-      this.config?.show_inactive ? true : isEntityActive(entity),
+    const entities = configuredEntities.filter((entity) =>
+      entity.kind === "parse-failure"
+        ? true
+        : this.config?.show_inactive
+          ? true
+          : isEntityActive(entity.session),
     );
 
     return [...entities].sort((left, right) =>
-      getDisplayName(left).localeCompare(getDisplayName(right)),
+      this.getConfiguredEntityLabel(left).localeCompare(this.getConfiguredEntityLabel(right)),
     );
   }
 
@@ -311,7 +337,10 @@ export class PlexSessionsCard extends LitElement {
     return `max-width: ${maxWidth}px;`;
   }
 
-  private getEmptyState(): { title: string; body: string } {
+  private getEmptyState(
+    configuredEntities: PlexConfiguredEntity[],
+    visibleEntities: PlexConfiguredEntity[],
+  ): { title: string; body: string } {
     if (!this.hass || !this.config) {
       return {
         title: "No Plex sessions",
@@ -319,12 +348,17 @@ export class PlexSessionsCard extends LitElement {
       };
     }
 
-    const configuredEntities = getConfiguredEntities(this.hass, this.config);
-
     if (configuredEntities.length === 0) {
       return {
         title: "No Plex clients found",
         body: "No matching Plex media players were discovered for this card.",
+      };
+    }
+
+    if (visibleEntities.length > 0) {
+      return {
+        title: "",
+        body: "",
       };
     }
 
@@ -362,7 +396,36 @@ export class PlexSessionsCard extends LitElement {
     `;
   }
 
-  private renderEntity(entity: HomeAssistantEntity) {
+  private getConfiguredEntityLabel(entity: PlexConfiguredEntity): string {
+    return entity.kind === "session"
+      ? getDisplayName(entity.session)
+      : entity.failure.entityId;
+  }
+
+  private getParseFailureTitle(failure: PlexParseFailure): string {
+    return [
+      `Failed to parse Plex entity: ${failure.entityId}`,
+      failure.reason,
+      "Please provide example entity data in a GitHub issue.",
+    ].join("\n");
+  }
+
+  private renderConfiguredEntity(entity: PlexConfiguredEntity) {
+    return entity.kind === "session"
+      ? this.renderEntity(entity.session)
+      : this.renderParseFailure(entity.failure);
+  }
+
+  private renderParseFailure(failure: PlexParseFailure) {
+    return html`
+      <div class="tile parse-warning" title=${this.getParseFailureTitle(failure)}>
+        <ha-icon class="warning-icon" icon="mdi:alert-circle-outline"></ha-icon>
+        <div class="parse-warning-label">Parse failed</div>
+      </div>
+    `;
+  }
+
+  private renderEntity(entity: PlexSession) {
     const picture = getEntityPicture(entity);
     const initials = getDisplayName(entity).slice(0, 1).toUpperCase();
     const playbackState = getPlaybackStateMeta(entity);
@@ -373,8 +436,8 @@ export class PlexSessionsCard extends LitElement {
         class="tile"
         role="button"
         tabindex="0"
-        @click=${() => this.showMoreInfo(entity.entity_id)}
-        @keydown=${(event: KeyboardEvent) => this.handleTileKeydown(event, entity.entity_id)}
+        @click=${() => this.showMoreInfo(entity.entityId)}
+        @keydown=${(event: KeyboardEvent) => this.handleTileKeydown(event, entity.entityId)}
       >
         <div class="top">
           <div class="artwork detailed">

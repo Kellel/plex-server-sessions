@@ -35,36 +35,47 @@ export interface PlexDetailedMedia {
   progress?: PlexProgress;
 }
 
-export interface PlexEntityAttributes {
+export interface PlexSession {
+  entityId: string;
+  playbackState: PlexPlaybackState;
+  mediaContentType: PlexMediaContentType;
+  displayName: string;
+  friendlyName?: string;
   username?: string;
-  friendly_name?: string;
-  entity_picture?: string;
-  media_content_id?: number | string;
-  media_content_type?: string;
-  media_duration?: number;
-  media_episode?: number;
-  media_library_title?: string;
-  media_position?: number;
-  media_position_updated_at?: string;
-  media_season?: number;
-  media_series_title?: string;
-  media_title?: string;
-  player_source?: string;
+  entityPicture?: string;
+  mediaTitle?: string;
+  mediaSeriesTitle?: string;
+  mediaLibraryTitle?: string;
+  mediaPosition?: number;
+  mediaDuration?: number;
+  mediaSeason?: number;
+  mediaEpisode?: number;
 }
+
+export interface PlexParseFailure {
+  entityId: string;
+  reason: string;
+  entity: HomeAssistantEntity;
+}
+
+export type PlexConfiguredEntity =
+  | {
+      kind: "session";
+      session: PlexSession;
+    }
+  | {
+      kind: "parse-failure";
+      failure: PlexParseFailure;
+    };
 
 export interface HomeAssistantEntity {
   entity_id: string;
   state: string;
-  attributes: PlexEntityAttributes;
+  attributes: Record<string, unknown>;
 }
 
 export interface HomeAssistant {
   states: Record<string, HomeAssistantEntity>;
-  callService?: (
-    domain: string,
-    service: string,
-    serviceData?: Record<string, unknown>,
-  ) => void;
 }
 
 export interface PlexSessionsCardConfig {
