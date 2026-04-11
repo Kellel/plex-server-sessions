@@ -6,9 +6,12 @@ export type PlexPlaybackState =
   | "unavailable"
   | "unknown";
 
-export type PlexMediaContentType =
+export type PlexSupportedMediaContentType =
   | "tvshow"
-  | "movie"
+  | "movie";
+
+export type PlexMediaContentType =
+  | PlexSupportedMediaContentType
   | "unknown";
 
 export interface PlexPlaybackStateMeta {
@@ -28,15 +31,31 @@ export interface PlexProgress {
 export interface PlexDetailedMedia {
   primaryTitle?: string;
   secondaryTitle?: string;
-  detailLabel?: string;
   libraryTitle?: string;
   progress?: PlexProgress;
+}
+
+export interface PlexEntityAttributes {
+  username?: string;
+  friendly_name?: string;
+  entity_picture?: string;
+  media_content_id?: number | string;
+  media_content_type?: string;
+  media_duration?: number;
+  media_episode?: number;
+  media_library_title?: string;
+  media_position?: number;
+  media_position_updated_at?: string;
+  media_season?: number;
+  media_series_title?: string;
+  media_title?: string;
+  player_source?: string;
 }
 
 export interface HomeAssistantEntity {
   entity_id: string;
   state: string;
-  attributes: Record<string, unknown>;
+  attributes: PlexEntityAttributes;
 }
 
 export interface HomeAssistant {

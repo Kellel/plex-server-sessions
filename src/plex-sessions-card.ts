@@ -20,7 +20,7 @@ export class PlexSessionsCard extends LitElement {
 
   @state() private config?: PlexSessionsCardConfig;
 
-  public static styles = css`
+  public static override styles = css`
     :host {
       display: block;
     }
@@ -150,7 +150,6 @@ export class PlexSessionsCard extends LitElement {
     }
 
     .media-secondary,
-    .media-detail,
     .progress-time {
       color: var(--secondary-text-color, #666);
       font-size: 0.85rem;
@@ -266,7 +265,7 @@ export class PlexSessionsCard extends LitElement {
     return 2;
   }
 
-  protected render() {
+  protected override render() {
     if (!this.hass || !this.config) {
       return nothing;
     }
@@ -409,9 +408,6 @@ export class PlexSessionsCard extends LitElement {
               : nothing}
             ${detailedMedia.secondaryTitle
               ? html`<div class="media-secondary">${detailedMedia.secondaryTitle}</div>`
-              : nothing}
-            ${detailedMedia.detailLabel
-              ? html`<div class="media-detail">${detailedMedia.detailLabel}</div>`
               : nothing}
           </div>
         </div>
